@@ -1,5 +1,7 @@
 const hapi = require('@hapi/hapi');
 
+const postList = require('./DOM');
+
 async function createServer() {
     const server = await new hapi.Server({
         port: process.env.PORT || 3000,
@@ -21,7 +23,8 @@ async function createServer() {
     server.route({
         method: 'POST',
         path: '/',
-        handler() {
+        handler(response,h) {
+            console.log(postList(response.payload));
             return "POST"
         }
     });
