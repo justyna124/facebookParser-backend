@@ -3,7 +3,7 @@ const Promise = require('bluebird');
 
 module.exports = {
     es: {
-        index: 'fb',
+        index: 'facebookParser',
         options: {
             defer: () => Promise.defer(),
             apiVersion: '7.2',
