@@ -1,5 +1,4 @@
 const hapi = require('@hapi/hapi');
-
 const daoUtil = require('./daoUtil');
 
 const index = 'fbparsertest';
@@ -19,7 +18,7 @@ async function createServer() {
         path: '/',
 
         handler() {
-            let body = {size: 20, query: {match_all: {}}};
+            let body = {size: 50, query: {match_all: {}}};
             return daoUtil.getAllData(index, body);
         }
     });
@@ -28,10 +27,10 @@ async function createServer() {
         method: 'POST',
         path: '/',
         handler(response, h) {
-            console.log(response.payload);
-            return daoUtil.getElasticSearchClient().index({index: index, type: 'data', body: response.payload})
+            return daoUtil.addData(response.payload, 'data');
         }
     });
+
     return server;
 }
 
