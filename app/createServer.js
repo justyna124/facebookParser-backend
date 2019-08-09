@@ -12,22 +12,27 @@ async function createServer() {
             }
         }
     });
-
-    server.route({
-        method: 'GET',
-        path: '/',
-
-        handler() {
-            let body = {size: 50, query: {match_all: {}}};
-            return daoUtil.getAllData(index, body);
-        }
-    });
-
     server.route({
         method: 'POST',
         path: '/',
         handler(response, h) {
             return daoUtil.addData(response.payload, 'data');
+        }
+    });
+    server.route({
+        method: 'GET',
+        path: '/all',
+
+        handler() {
+            return daoUtil.getAllData(index);
+        }
+    });
+    server.route({
+        method: 'GET',
+        path: '/last',
+
+        handler() {
+            return daoUtil.getLastAdded();
         }
     });
 
