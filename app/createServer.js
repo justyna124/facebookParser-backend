@@ -21,10 +21,10 @@ async function createServer() {
     });
     server.route({
         method: 'GET',
-        path: '/all',
+        path: '/all/{pathVariable}',
 
-        handler() {
-            return daoUtil.getAllData(index);
+        handler(request,h) {
+            return daoUtil.getAllData(index,request.params.pathVariable);
         }
     });
     server.route({

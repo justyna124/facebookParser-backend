@@ -34,5 +34,6 @@ typings
 # Optional npm cache directory
 .npm
 .idea
+package-lock.json
 # Optional REPL history
 .node_repl_history

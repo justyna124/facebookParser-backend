@@ -1,6 +1,7 @@
 'use strict';
 
 const elasticsearch = require('elasticsearch');
+const date = require('date-and-time');
 const {parse} = require('comment-json');
 
 
@@ -18,19 +19,21 @@ async function addData(data, type) {
     typeof (data) !== "object" ? data = parse(data) : data;
 
     let body = {...data};
-    body.date = dateParse(body.date);
+    body.date = date.parse(body.date, 'DD.MM.YYYY, HH:mm');
     return await es.index({index: index, type: type, body: body})
         .then(response => response.result);
 
 }
 
 async function createIndex(index) {
-    await es.indices.create({index});
-    return "Index create";
+    return await es.indices.create({index});
+
 }
 
-function getAllData(index) {
-    let body = {size: 2000, query: {match_all: {}}, sort: [{"date": "desc"}]};
+function getAllData(index, pathVariable) {
+    let size = 10;
+    let skip = (pathVariable - 1) * size;
+    let body = {size: size, from: skip, query: {match_all: {}}, sort: [{"date": "desc"}]};
     return es.search({index: index, body: body})
         .then(result => result.hits);
 }
@@ -40,15 +43,6 @@ function getLastAdded() {
     return es.search({index: index, body: body})
         .then(result => result.hits.hits[0]._source.id);
 
-}
-
-function dateParse(dataString) {
-    let parts = dataString.split('.');
-    let temp = parts[0];
-    parts[0] = parts[1];
-    parts[1] = temp;
-    let date = new Date(parts.join('.').toString());
-    return date;
 }
 
 
