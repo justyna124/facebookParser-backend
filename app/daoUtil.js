@@ -25,6 +25,14 @@ async function addData(data, type) {
 
 }
 
+async function checkInDb(type, id) {
+
+    let body = {query: {match_phrase_prefix: {"id": id}}};
+    return await es.search({index: index, type: type, body: body})
+        .then(result => result.hits.total.value)
+        .catch(err => err.statusCode);
+}
+
 async function createIndex(index) {
     return await es.indices.create({index});
 
@@ -39,15 +47,16 @@ function getAllData(index, pathVariable) {
 }
 
 function getLastAdded() {
+
     let body = {size: 1, _source: ["id"], query: {match_all: {}}, sort: [{"date": "desc"}]};
     return es.search({index: index, body: body})
         .then(result => result.hits.hits[0]._source.id);
-
 }
 
 
 module.exports = {
     addData,
+    checkInDb,
     getLastAdded,
     getAllData,
 };
