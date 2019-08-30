@@ -58,7 +58,7 @@ function getLastAdded(index) {
 function getLastCorrectlyReceived(index) {
 
     let indexName = index || config.es.index;
-    indexName = `${indexName}LastCorrect`;
+    indexName = `${indexName}-last-correct`;
 
     let body = {_source: ["id"], query: {match_all: {}}};
     return es.search({index: indexName, body: body})
@@ -67,7 +67,7 @@ function getLastCorrectlyReceived(index) {
 
 function lastCorrectlyReceived(index, id) {
     let indexName = index || config.es.index;
-    indexName = `${indexName}LastCorrect`;
+    indexName = `${indexName}-last-correct`;
 
     return es.index({index: indexName, type: 'id', id: 'lastCorrect', body: {"id": id}});
 }
