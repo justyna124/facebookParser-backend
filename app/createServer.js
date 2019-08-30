@@ -1,7 +1,6 @@
 const hapi = require('@hapi/hapi');
 const daoUtil = require('./daoUtil');
 
-const index = 'fbparsertest';
 
 async function createServer() {
     const server = await new hapi.Server({
@@ -14,12 +13,13 @@ async function createServer() {
     });
     server.route({
         method: 'POST',
-        path: '/',
-        handler(response, h) {
-            return daoUtil.checkInDb('data', JSON.parse(response.payload).id)
+        path: '/{groupId}',
+        handler(request, h) {
+            daoUtil.lastCorrectlyReceived(request.params.groupId, JSON.parse(request.payload).id);
+            return daoUtil.checkInDb(request.params.groupId, 'data', JSON.parse(request.payload).id)
                 .then(resp => {
                     if (resp === 404 || !resp) {
-                        return daoUtil.addData(response.payload, 'data');
+                        return daoUtil.addData(request.params.groupId, request.payload, 'data');
                     } else {
                         return null;
                     }
@@ -28,21 +28,28 @@ async function createServer() {
     });
     server.route({
         method: 'GET',
-        path: '/all/{pathVariable}',
+        path: '/all/{indexName}/{pathVariable}',
 
         handler(request, h) {
-            return daoUtil.getAllData(index, request.params.pathVariable);
+            return daoUtil.getAllData(request.params.indexName, request.params.pathVariable);
         }
     });
     server.route({
         method: 'GET',
-        path: '/last',
+        path: '/last/{indexName}',
 
-        handler() {
-            return daoUtil.getLastAdded();
+        handler(request, h) {
+            return daoUtil.getLastAdded(request.params.indexName);
         }
     });
+    server.route({
+        method: 'GET',
+        path: '/lastCorrect/{indexName}',
 
+        handler(request, h) {
+            return daoUtil.getLastCorrectlyReceived(request.params.indexName);
+        }
+    });
     return server;
 }
 
