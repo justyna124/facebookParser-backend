@@ -13,7 +13,7 @@ async function createServer() {
     });
     server.route({
         method: 'POST',
-        path: '/{groupId}',
+        path: '/savePosts/{groupId}',
         handler(request, h) {
             daoUtil.lastCorrectlyReceived(request.params.groupId, JSON.parse(request.payload).id);
             return daoUtil.checkInDb(request.params.groupId, 'data', JSON.parse(request.payload).id)
@@ -28,15 +28,15 @@ async function createServer() {
     });
     server.route({
         method: 'GET',
-        path: '/all/{indexName}/{pathVariable}',
+        path: '/allData/{groupId}/{pageNumber}',
 
         handler(request, h) {
-            return daoUtil.getAllData(request.params.indexName, request.params.pathVariable);
+            return daoUtil.getAllData(request.params.groupId, request.params.pageNumber);
         }
     });
     server.route({
         method: 'GET',
-        path: '/last/{indexName}',
+        path: '/lastPostInContainer/{indexName}',
 
         handler(request, h) {
             return daoUtil.getLastAdded(request.params.indexName);
@@ -44,7 +44,7 @@ async function createServer() {
     });
     server.route({
         method: 'GET',
-        path: '/lastCorrect/{indexName}',
+        path: '/lastCorrectReceivedId/{indexName}',
 
         handler(request, h) {
             return daoUtil.getLastCorrectlyReceived(request.params.indexName);
