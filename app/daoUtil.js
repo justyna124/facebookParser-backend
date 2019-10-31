@@ -1,78 +1,85 @@
-'use strict';
-
-const elasticsearch = require('elasticsearch');
-const date = require('date-and-time');
-const {parse} = require('comment-json');
-
+const elasticsearch = require('@elastic/elasticsearch');
+const Promise = require('bluebird');
 
 const config = require('./config');
-const fbParser = new elasticsearch.Client({...config.es.options});
 
+const fbParser = new elasticsearch.Client({ ...config.es.options });
 
-async function addData(index, data, type) {
-
-    typeof (data) !== "object" ? data = parse(data) : data;
-
-    let indexName = index || config.es.index;
-    let body = {...data};
-    body.date = date.parse(body.date, 'DD.MM.YYYY, HH:mm');
-    return await fbParser.index({index: indexName, type: type, body: body})
-        .then(response => response.result);
-}
-
-async function checkInDb(index, type, id) {
-
-    let indexName = index || config.es.index;
-
-    let body = {query: {match_phrase_prefix: {"id": id}}};
-    return await fbParser.search({index: indexName, type: type, body: body})
-        .then(result => result.hits.total.value)
-        .catch(err => err.statusCode);
+function checkIndexExist(index) {
+  return fbParser.indices.exists({ index });
 }
 
 async function createIndex(index) {
-    return await fbParser.indices.create({index});
+  return await fbParser.indices.create({ index });
 }
 
-function getAllData(index, pathVariable) {
-    let indexName = index || config.es.index;
-    let size = 10;
-    let skip = (pathVariable - 1) * size;
-    let body = {size: size, from: skip, query: {match_all: {}}, sort: [{"date": "desc"}]};
-    return fbParser.search({index: indexName, body: body})
-        .then(result => result.hits);
+Promise.props({ // Todo: wait for es start
+  index: checkIndexExist(config.es.index).then(result => result.body),
+  lastParsedPostsIndex: checkIndexExist(config.es.lastParsedPostsIndex).then(result => result.body)
+})
+  .then(results => {
+    if (!results.index) {
+      console.log('Create main index...');
+      createIndex(config.es.index).then(() => {
+        console.info(`Index ${config.es.index} created`)
+      });
+    }
+    if (!results.lastParsedPostsIndex) {
+      console.log(`Create additional ${config.es.lastParsedPostsIndex} index...`);
+      createIndex(config.es.lastParsedPostsIndex).then(() => {
+        console.info(`Index ${config.es.lastParsedPostsIndex} created`)
+      });
+    }
+  })
+  .catch(e => {
+    console.error(e);
+  });
+
+function addData(body, additionalParam) {
+  const params = {
+    index: config.es.index,
+    type: 'data',
+    body,
+    ...additionalParam
+  };
+  return fbParser.index(params);
 }
 
-function getLastAdded(index) {
-    let indexName = index || config.es.index;
-
-    let body = {size: 1, _source: ["id"], query: {match_all: {}}, sort: [{"date": "desc"}]};
-    return fbParser.search({index: indexName, body: body})
-        .then(result => result.hits.hits[0]._source.id);
+function saveLastParsedPost(body) {
+  return addData(body)
+    .then(() => {
+      console.log(`Save: groupId: ${body.groupId} with postId: ${body.id}`);
+      return fbParser.index({
+        index: config.es.lastParsedPostsIndex,
+        type: 'data',
+        id: body.groupId,
+        body: {
+          postId: body.id
+        }
+      })
+    });
 }
 
-function getLastCorrectlyReceived(index) {
-
-    let indexName = index || config.es.index;
-    indexName = `${indexName}-last-correct`;
-
-    let body = {_source: ["id"], query: {match_all: {}}};
-    return fbParser.search({index: indexName, body: body})
-        .then(result => result.hits.hits[0]._source.id);
-}
-
-function lastCorrectlyReceived(index, id) {
-    let indexName = index || config.es.index;
-    indexName = `${indexName}-last-correct`;
-
-    return fbParser.index({index: indexName, type: 'id', id: 'lastCorrect', body: {"id": id}});
+function getLastParsedPost(groupId) {
+  console.log('GroupID:', groupId);
+  return fbParser.get({
+    index: config.es.lastParsedPostsIndex,
+    id: groupId
+  })
+    .then(data => {
+      return data.body._source;
+    })
+    .catch(e => {
+      console.error(e);
+      if (404 === e.statusCode) {
+        return null;
+      }
+      return e;
+    });
 }
 
 module.exports = {
-    addData,
-    checkInDb,
-    getAllData,
-    getLastAdded,
-    getLastCorrectlyReceived,
-    lastCorrectlyReceived
+  addData,
+  saveLastParsedPost,
+  getLastParsedPost
 };

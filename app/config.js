@@ -3,12 +3,13 @@ const Promise = require('bluebird');
 
 module.exports = {
     es: {
-        index: 'facebookParser',
+        index: 'facebook-parser',
+        lastParsedPostsIndex: 'facebook-parser-last-parsed-posts',
         options: {
-            defer: () => Promise.defer(),
-            apiVersion: '7.2',
-            host: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
-            requestTimeout: process.env.ELASTICSEARCH_REQUEST_TIMEOUT
+            node: process.env.ELASTICSEARCH_URL || 'http://localhost:9200',
+            maxRetries: 5,
+            requestTimeout: 60000,
+            sniffOnStart: true
         },
         concurrentRequests: parseInt(process.env.ES_CONCURRENT_REQUESTS, 10) || 200
     },
